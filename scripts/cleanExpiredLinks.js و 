@@ -1,0 +1,49 @@
+const { google } = require('googleapis');
+
+// Read Firebase Service Account from GitHub Secret
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const firestore = google.firestore('v1');
+
+async function main() {
+  const auth = new google.auth.GoogleAuth({
+    credentials: serviceAccount,
+    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+  });
+
+  const authClient = await auth.getClient();
+  google.options({ auth: authClient });
+
+  const now = new Date().toISOString();
+  const projectId = serviceAccount.project_id;
+
+  const res = await firestore.projects.databases.documents.list({
+    parent: `projects/${projectId}/databases/(default)/documents/subscriptions`,
+    pageSize: 1000,
+  });
+
+  const docs = res.data.documents || [];
+  let count = 0;
+
+  for (const doc of docs) {
+    const fields = doc.fields;
+    const isExpired = fields?.expiresAt?.timestampValue <= now;
+    const isActive = fields?.active?.booleanValue === true;
+
+    if (isExpired && isActive) {
+      await firestore.projects.databases.documents.patch({
+        name: doc.name,
+        updateMask: 'active',
+        requestBody: {
+          fields: {
+            active: { booleanValue: false },
+          },
+        },
+      });
+      count++;
+    }
+  }
+
+  console.log(`${count} expired subscriptions deactivated.`);
+}
+
+main().catch(console.error);
