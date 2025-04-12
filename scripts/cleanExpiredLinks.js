@@ -1,49 +1,30 @@
-const { google } = require('googleapis');
+const admin = require("firebase-admin");
 
-// Read Firebase Service Account from GitHub Secret
 const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-const firestore = google.firestore('v1');
 
-async function main() {
-  const auth = new google.auth.GoogleAuth({
-    credentials: serviceAccount,
-    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-  });
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
-  const authClient = await auth.getClient();
-  google.options({ auth: authClient });
+const db = admin.firestore();
 
-  const now = new Date().toISOString();
-  const projectId = serviceAccount.project_id;
+(async () => {
+  try {
+    const now = new Date();
+    const snapshot = await db.collection("subscriptions").get();
+    let count = 0;
 
-  const res = await firestore.projects.databases.documents.list({
-    parent: `projects/${projectId}/databases/(default)/documents/subscriptions`,
-    pageSize: 1000,
-  });
-
-  const docs = res.data.documents || [];
-  let count = 0;
-
-  for (const doc of docs) {
-    const fields = doc.fields;
-    const isExpired = fields?.expiresAt?.timestampValue <= now;
-    const isActive = fields?.active?.booleanValue === true;
-
-    if (isExpired && isActive) {
-      await firestore.projects.databases.documents.patch({
-        name: doc.name,
-        updateMask: 'active',
-        requestBody: {
-          fields: {
-            active: { booleanValue: false },
-          },
-        },
-      });
-      count++;
+    for (const doc of snapshot.docs) {
+      const data = doc.data();
+      if (data.active === true && new Date(data.expiresAt) <= now) {
+        await doc.ref.update({ active: false });
+        count++;
+      }
     }
+
+    console.log(`${count} expired links deactivated.`);
+  } catch (error) {
+    console.error("Error cleaning expired links:", error);
+    process.exit(1);
   }
-
-  console.log(`${count} expired subscriptions deactivated.`);
-}
-
-main().catch(console.error);
+})();
