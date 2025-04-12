@@ -1,0 +1,12 @@
+{
+    "name": "auto-firestore-cleaner",
+    "version": "1.0.0",
+    "description": "Automatically deactivates expired subscriptions in Firestore.",
+    "main": "scripts/cleanExpiredLinks.js",
+    "scripts": {
+      "clean": "node scripts/cleanExpiredLinks.js"
+    },
+    "dependencies": {
+      "firebase-admin": "^11.10.1"
+    }
+  }

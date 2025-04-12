@@ -1,0 +1,2 @@
+- name: Run Clean Script
+  run: node scripts/cleanExpiredLinks.js
