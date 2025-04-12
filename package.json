@@ -1,8 +1,12 @@
 {
-  "name": "auto-firestore-cleaner",
-  "version": "1.0.0",
-  "main": "index.js",
-  "dependencies": {
-    "googleapis": "^105.0.0"
-  }
+      "name": "auto-firestore-cleaner",
+        "version": "1.0.0",
+          "main": "scripts/cleanExpiredLinks.js",
+            "scripts": {
+                "start": "node scripts/cleanExpiredLinks.js"
+                  },
+                    "dependencies": {
+                        "firebase-admin": "^11.0.0"
+                          }
+                          }
 }

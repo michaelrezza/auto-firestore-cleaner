@@ -1,30 +1,22 @@
-const admin = require("firebase-admin");
-
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const admin = require('firebase-admin');
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+  credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
+  });
 
-const db = admin.firestore();
+  const db = admin.firestore();
 
-(async () => {
-  try {
+  async function cleanExpiredLinks() {
     const now = new Date();
-    const snapshot = await db.collection("subscriptions").get();
-    let count = 0;
+      const snapshot = await db.collection('links').where('expiresAt', '<=', now).get();
 
-    for (const doc of snapshot.docs) {
-      const data = doc.data();
-      if (data.active === true && new Date(data.expiresAt) <= now) {
-        await doc.ref.update({ active: false });
-        count++;
-      }
-    }
+        const batch = db.batch();
+          snapshot.forEach((doc) => {
+              batch.delete(doc.ref);
+                });
 
-    console.log(`${count} expired links deactivated.`);
-  } catch (error) {
-    console.error("Error cleaning expired links:", error);
-    process.exit(1);
-  }
-})();
+                  await batch.commit();
+                    console.log(`Deleted ${snapshot.size} expired links.`);
+                    }
+
+                    cleanExpiredLinks().catch(console.error);
