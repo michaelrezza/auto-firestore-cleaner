@@ -2,8 +2,9 @@
 import { initializeApp, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// خواندن کلید سرویس از متغیر محیطی (Secret)
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+// خواندن base64 و تبدیل به JSON
+const decoded = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64').toString();
+const serviceAccount = JSON.parse(decoded);
 
 initializeApp({
   credential: cert(serviceAccount)
@@ -18,7 +19,7 @@ async function cleanExpiredLinks() {
                            .get();
 
   if (snapshot.empty) {
-    console.log("No expired links found.");
+    console.log("هیچ لینک منقضی‌شده‌ای پیدا نشد.");
     return;
   }
 
@@ -28,9 +29,9 @@ async function cleanExpiredLinks() {
   });
 
   await batch.commit();
-  console.log(`${snapshot.size} expired links deactivated.`);
+  console.log(`${snapshot.size} لینک منقضی غیرفعال شد.`);
 }
 
 cleanExpiredLinks().catch(error => {
-  console.error("Error cleaning expired links:", error);
+  console.error("خطا در غیرفعال‌سازی لینک‌ها:", error);
 });
